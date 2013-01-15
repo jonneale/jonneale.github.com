@@ -1,0 +1,42 @@
+# Hash ArityExceptions in Clojure anonymous functions
+
+Say you have the following data structure, consisting of a vector of 2d coordinates:
+
+  [[1 1] [1 2] [2 3]]
+
+and you wanted to transform this into a vector of maps representing points
+
+  ({:point [1 1]} {:point [1 2]} {:point [2 3]})
+
+A common issue encountered by people new to Clojure (particularly myself), is in understanding why a code snippet like the one below:
+
+  (map #({:point %}) [[1 1] [1 2] [2 3]])
+
+Throws the following exception:
+
+  ArityException Wrong number of args (1) passed to: user$eval1301$fn   clojure.lang.AFn.throwArity (AFn.java:437)
+
+To some people the problem is immediate. To others, picking through that slightly esoteric error message is not straightforward. If you actually read the error message, you'll see that somewhere in our anonymous function we have an arity exception.
+
+The key thing to understand in this example, is that a map is itself a function. To prove this to yourself try this at the repl:
+
+  ({:a "some value"} :a)
+
+  => "some value"
+
+Invoking a map as a function allows you to index into it. Now, if we look at our example again, specifically the anonymous function we have written:
+
+  \#({:point %})
+
+You will see that we are repeatedly invoking the map with no arguments, hence the exception. So how would we accomplish the original transformation? A simple way might be to wrap the offending map in a function which can be called with no arguments and which would yield the transformed map. The identity function would fit these requirements:
+
+  (map #(identity {:point %}) [[1 1] [1 2] [2 3]])
+
+
+There's something that feels wrong about this, however. A more declarative solution might be to use hash-map as below:
+
+  (map #(hash-map :point %) [[1 1] [1 2] [2 3]])
+
+This has the added advantage of removing a set of brackets, which is always worth bonus points!
+
+I hope this has shed some light of a common exception and cause of confusion. If not, please let me know in the comments
